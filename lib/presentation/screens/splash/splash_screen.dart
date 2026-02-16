@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
 
-/// Splash screen with OJEE 2026 branding and Lottie animation
+/// Splash screen with branding and Lottie animation
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -102,20 +102,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: 60,
                 height: 60,
                 repeat: true,
-              ),
-            ),
-          ),
-          // Copyright text
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 24),
-              child: Text(
-                '© OJEE-2026',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
               ),
             ),
           ),
