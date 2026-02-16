@@ -86,6 +86,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     style: theme.textTheme.headlineSmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
+                      fontSize: 36,
                     ),
                   ),
                 ],
