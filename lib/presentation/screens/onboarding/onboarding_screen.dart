@@ -13,7 +13,7 @@ class OnboardingScreen extends StatelessWidget {
     await completeOnboarding();
     if (context.mounted) {
       // If opened from About header (pushNamed), just pop back.
-      // If opened from splash (pushReplacementNamed), go to /home.
+      // If opened from login (pushNamedAndRemoveUntil), go to /home.
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       } else {

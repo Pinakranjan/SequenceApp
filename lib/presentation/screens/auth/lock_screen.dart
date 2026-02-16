@@ -1,31 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_config.dart';
 import '../../../providers/auth_provider.dart';
 
-/// Login Step 2: Credentials entry with PIN/Password toggle.
+/// Lock screen — shown when the user locks the app from the home screen.
 ///
-/// Receives via route arguments:
-///   - 'email': String
-///   - 'user': Map with name, email, role, photo_url, has_pin_enabled
-class LoginCredentialsScreen extends ConsumerStatefulWidget {
-  const LoginCredentialsScreen({super.key});
+/// Shows user preview (avatar, name, role, email) with PIN/Password toggle.
+/// Mirrors the Laravel lock screen (lock.blade.php).
+class LockScreen extends ConsumerStatefulWidget {
+  const LockScreen({super.key});
 
   @override
-  ConsumerState<LoginCredentialsScreen> createState() =>
-      _LoginCredentialsScreenState();
+  ConsumerState<LockScreen> createState() => _LockScreenState();
 }
 
-class _LoginCredentialsScreenState
-    extends ConsumerState<LoginCredentialsScreen> {
-  late String _email;
+class _LockScreenState extends ConsumerState<LockScreen> {
   late Map<String, dynamic> _user;
+  late String _email;
   late bool _hasPinEnabled;
 
-  String _authMethod = 'pin'; // 'pin' or 'password'
+  String _authMethod = 'pin';
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -36,27 +31,20 @@ class _LoginCredentialsScreenState
   );
   final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
 
-  bool _didInit = false;
-
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_didInit) {
-      final args =
-          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-      _email = args['email'] as String;
-      _user = args['user'] as Map<String, dynamic>;
-      _hasPinEnabled = _user['has_pin_enabled'] == true;
-      _authMethod = _hasPinEnabled ? 'pin' : 'password';
-      _didInit = true;
+  void initState() {
+    super.initState();
+    final authService = ref.read(authServiceProvider);
+    _user = authService.getStoredUser() ?? {};
+    _email = (_user['email'] ?? '') as String;
+    _hasPinEnabled = _user['has_pin_enabled'] == true;
+    _authMethod = _hasPinEnabled ? 'pin' : 'password';
 
-      // Auto-focus first PIN or password
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_hasPinEnabled) {
-          _pinFocusNodes[0].requestFocus();
-        }
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_hasPinEnabled) {
+        _pinFocusNodes[0].requestFocus();
+      }
+    });
   }
 
   @override
@@ -73,7 +61,7 @@ class _LoginCredentialsScreenState
 
   String get _pinValue => _pinControllers.map((c) => c.text).join();
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleUnlock() async {
     if (_authMethod == 'password' && _passwordController.text.trim().isEmpty) {
       _showError('Please enter your password.');
       return;
@@ -98,22 +86,9 @@ class _LoginCredentialsScreenState
     setState(() => _isLoading = false);
 
     if (result['success'] == true) {
-      // Check onboarding status
-      final prefs = await SharedPreferences.getInstance();
-      final key = 'onboarding_completed_${AppConfig.appVersion}';
-      final onboardingDone = prefs.getBool(key) ?? false;
-      if (!mounted) return;
-
-      if (!onboardingDone) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/onboarding', (_) => false);
-      } else {
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
-      }
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     } else {
-      _showError(result['message'] ?? 'Login failed');
-      // Clear PIN on error
+      _showError(result['message'] ?? 'Incorrect credentials');
       if (_authMethod == 'pin') {
         for (final c in _pinControllers) {
           c.clear();
@@ -121,6 +96,14 @@ class _LoginCredentialsScreenState
         _pinFocusNodes[0].requestFocus();
       }
     }
+  }
+
+  Future<void> _handleSignOut() async {
+    setState(() => _isLoading = true);
+    final authService = ref.read(authServiceProvider);
+    await authService.logout();
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/landing', (_) => false);
   }
 
   void _showError(String message) {
@@ -137,6 +120,26 @@ class _LoginCredentialsScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final name = (_user['name'] ?? 'User') as String;
+    final email = _email;
+    final role = (_user['role'] ?? 'user').toString();
+    final photoUrl = _user['photo_url'] as String?;
+
+    String roleLabel;
+    Color roleBadgeColor;
+    switch (role.toLowerCase()) {
+      case 'super admin':
+        roleLabel = 'Super Admin';
+        roleBadgeColor = AppColors.error;
+        break;
+      case 'admin':
+        roleLabel = 'Admin';
+        roleBadgeColor = AppColors.success;
+        break;
+      default:
+        roleLabel = 'User';
+        roleBadgeColor = const Color(0xFF8C57D1);
+    }
 
     return Scaffold(
       body: Container(
@@ -156,12 +159,120 @@ class _LoginCredentialsScreenState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Lock icon
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.lock_outline,
+                      color: AppColors.primaryGreen,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Screen Locked',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
                   // ── User Avatar ──
-                  _buildUserPreview(theme),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child:
+                          photoUrl != null && photoUrl.isNotEmpty
+                              ? Image.network(
+                                photoUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (_, __, ___) => Container(
+                                      color: AppColors.primaryGreen.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 32,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                    ),
+                              )
+                              : Container(
+                                color: AppColors.primaryGreen.withValues(
+                                  alpha: 0.2,
+                                ),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 32,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Name + role badge
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: roleBadgeColor,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          roleLabel.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    email,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF888888),
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
 
-                  // ── Auth Method Toggle (only if PIN enabled) ──
+                  // ── Auth Method Toggle ──
                   if (_hasPinEnabled) ...[
                     _buildMethodToggle(theme),
                     const SizedBox(height: 24),
@@ -175,12 +286,12 @@ class _LoginCredentialsScreenState
 
                   const SizedBox(height: 28),
 
-                  // ── Login Button ──
+                  // ── Unlock Button ──
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
+                      onPressed: _isLoading ? null : _handleUnlock,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryGreen,
                         foregroundColor: Colors.white,
@@ -202,7 +313,7 @@ class _LoginCredentialsScreenState
                                 ),
                               )
                               : const Text(
-                                'Log In',
+                                'Unlock',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -213,31 +324,26 @@ class _LoginCredentialsScreenState
 
                   const SizedBox(height: 16),
 
-                  // ── Bottom Links ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF888888),
+                  // ── Sign in as different user ──
+                  TextButton(
+                    onPressed: _isLoading ? null : _handleSignOut,
+                    child: RichText(
+                      text: TextSpan(
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF888888),
                         ),
-                        child: const Text('Back to Home'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(); // go back to email step
-                        },
-                        child: Text(
-                          'Use different account',
-                          style: TextStyle(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                        children: [
+                          TextSpan(text: 'Not $name? '),
+                          TextSpan(
+                            text: 'Sign in as a different user',
+                            style: TextStyle(
+                              color: AppColors.primaryGreen,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -248,134 +354,7 @@ class _LoginCredentialsScreenState
     );
   }
 
-  Widget _buildUserPreview(ThemeData theme) {
-    final name = _user['name'] ?? 'User';
-    final email = _user['email'] ?? _email;
-    final role = (_user['role'] ?? 'user').toString();
-    final photoUrl = _user['photo_url'] as String?;
-
-    String roleLabel;
-    Color roleBadgeColor;
-    switch (role.toLowerCase()) {
-      case 'super admin':
-        roleLabel = 'Super Admin';
-        roleBadgeColor = AppColors.error;
-        break;
-      case 'admin':
-        roleLabel = 'Admin';
-        roleBadgeColor = AppColors.success;
-        break;
-      default:
-        roleLabel = 'User';
-        roleBadgeColor = const Color(0xFF8C57D1);
-    }
-
-    return Column(
-      children: [
-        // Avatar
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child:
-                photoUrl != null && photoUrl.isNotEmpty
-                    ? Image.network(
-                      photoUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (_, __, ___) => Container(
-                            color: AppColors.primaryGreen.withValues(
-                              alpha: 0.2,
-                            ),
-                            child: Icon(
-                              Icons.person,
-                              size: 32,
-                              color: AppColors.primaryGreen,
-                            ),
-                          ),
-                    )
-                    : Container(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.2),
-                      child: Icon(
-                        Icons.person,
-                        size: 32,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-          ),
-        ),
-
-        const SizedBox(height: 14),
-
-        // Name + Role badge
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              name,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: roleBadgeColor,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                roleLabel.toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 4),
-
-        Text(
-          email,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: const Color(0xFF888888),
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        Text(
-          'Enter Your Credentials',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF1A1A1A),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Please enter your ${_hasPinEnabled ? "PIN or password" : "password"} to continue',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: const Color(0xFF666666),
-          ),
-        ),
-      ],
-    );
-  }
+  // ── Shared widgets (same style as LoginCredentialsScreen) ──
 
   Widget _buildMethodToggle(ThemeData theme) {
     return Row(
@@ -463,9 +442,11 @@ class _LoginCredentialsScreenState
               if (value.length == 1 && index < 3) {
                 _pinFocusNodes[index + 1].requestFocus();
               }
-              // Auto-submit when all 4 digits entered
               if (index == 3 && _pinValue.length == 4) {
-                Future.delayed(const Duration(milliseconds: 300), _handleLogin);
+                Future.delayed(
+                  const Duration(milliseconds: 300),
+                  _handleUnlock,
+                );
               }
             },
             onTap: () {
@@ -485,7 +466,7 @@ class _LoginCredentialsScreenState
       controller: _passwordController,
       obscureText: _obscurePassword,
       textInputAction: TextInputAction.done,
-      onFieldSubmitted: (_) => _handleLogin(),
+      onFieldSubmitted: (_) => _handleUnlock(),
       decoration: InputDecoration(
         labelText: 'Password',
         hintText: 'Enter your Password',

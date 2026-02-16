@@ -14,6 +14,7 @@ import 'presentation/screens/onboarding/onboarding_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/auth/landing_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
+import 'presentation/screens/auth/lock_screen.dart';
 import 'presentation/screens/auth/login_credentials_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
 import 'presentation/screens/auth/forgot_password_screen.dart';
@@ -104,6 +105,7 @@ class _SequenceAppState extends ConsumerState<SequenceApp> {
         '/login-credentials': (context) => const LoginCredentialsScreen(),
         '/register': (context) => const RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/lock': (context) => const LockScreen(),
       },
     );
   }

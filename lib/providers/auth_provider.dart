@@ -6,19 +6,19 @@ final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
 });
 
-/// Tracks whether the user is authenticated (has a stored token).
-final isAuthenticatedProvider = FutureProvider<bool>((ref) async {
+/// Tracks whether the user is authenticated (in-memory token check).
+final isAuthenticatedProvider = Provider<bool>((ref) {
   final authService = ref.read(authServiceProvider);
   return authService.isAuthenticated();
 });
 
-/// Provides the stored user data.
-final storedUserProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+/// Provides the current user data (in-memory).
+final storedUserProvider = Provider<Map<String, dynamic>?>((ref) {
   final authService = ref.read(authServiceProvider);
   return authService.getStoredUser();
 });
 
-/// Provides the remembered email.
+/// Provides the remembered email (persisted in SharedPreferences).
 final rememberedEmailProvider = FutureProvider<String?>((ref) async {
   final authService = ref.read(authServiceProvider);
   return authService.getRememberedEmail();

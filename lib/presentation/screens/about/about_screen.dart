@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
+import '../../../providers/auth_provider.dart';
 import '../../widgets/common/theme_toggle_action.dart';
 
 /// Orders screen (renamed from About)
@@ -65,6 +66,48 @@ class OrdersScreen extends ConsumerWidget {
               const IconTheme(
                 data: IconThemeData(color: Colors.white),
                 child: ThemeToggleAction(),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+                onSelected: (value) async {
+                  if (value == 'lock') {
+                    Navigator.of(context).pushNamed('/lock');
+                  } else if (value == 'signout') {
+                    final authService = ref.read(authServiceProvider);
+                    await authService.logout();
+                    if (context.mounted) {
+                      Navigator.of(
+                        context,
+                      ).pushNamedAndRemoveUntil('/landing', (_) => false);
+                    }
+                  }
+                },
+                itemBuilder:
+                    (context) => [
+                      const PopupMenuItem(
+                        value: 'lock',
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock_outline, size: 20),
+                            SizedBox(width: 10),
+                            Text('Lock Screen'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'signout',
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout, size: 20, color: Colors.red),
+                            SizedBox(width: 10),
+                            Text(
+                              'Sign Out',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
               ),
             ],
             flexibleSpace: Container(

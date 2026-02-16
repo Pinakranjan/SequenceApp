@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_config.dart';
-import '../../../data/services/auth_service.dart';
 
 /// Splash screen with branding and Lottie animation
 class SplashScreen extends StatefulWidget {
@@ -24,27 +21,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigate after delay — check onboarding + auth status
-    _navigationTimer = Timer(const Duration(seconds: 2), () async {
+    // Navigate after delay — always go to landing (no persistent session)
+    _navigationTimer = Timer(const Duration(seconds: 2), () {
       if (!mounted) return;
-      final prefs = await SharedPreferences.getInstance();
-      final key = 'onboarding_completed_${AppConfig.appVersion}';
-      final onboardingDone = prefs.getBool(key) ?? false;
-      if (!mounted) return;
-
-      if (!onboardingDone) {
-        Navigator.of(context).pushReplacementNamed('/onboarding');
-        return;
-      }
-
-      // Check if user is authenticated
-      final authService = AuthService();
-      final isLoggedIn = await authService.isAuthenticated();
-      if (!mounted) return;
-
-      Navigator.of(
-        context,
-      ).pushReplacementNamed(isLoggedIn ? '/home' : '/landing');
+      Navigator.of(context).pushReplacementNamed('/landing');
     });
 
     // Remove native splash screen after the widget is built

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_config.dart';
 import '../../../providers/auth_provider.dart';
 
 /// Registration screen with business code validation.
@@ -64,7 +66,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() => _isLoading = false);
 
     if (result['success'] == true) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+      // Check onboarding status
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'onboarding_completed_${AppConfig.appVersion}';
+      final onboardingDone = prefs.getBool(key) ?? false;
+      if (!mounted) return;
+
+      if (!onboardingDone) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/onboarding', (_) => false);
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+      }
     } else {
       _showError(result['message'] ?? 'Registration failed');
     }

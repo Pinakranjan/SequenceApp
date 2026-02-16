@@ -1,16 +1,20 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service for communicating with the Laravel Auth API.
+///
+/// Token and user data are kept **in-memory only** so that closing
+/// the app automatically clears the session and requires re-login.
 class AuthService {
   // Change this base URL to your production URL when deploying.
   static const String _baseUrl = 'http://127.0.0.1:9000/api/auth';
 
   late final Dio _dio;
 
-  static const String _tokenKey = 'auth_token';
-  static const String _userKey = 'auth_user';
+  // In-memory session — lost when the app process dies.
+  static String? _token;
+  static Map<String, dynamic>? _currentUser;
+
   static const String _rememberedEmailKey = 'remembered_email';
 
   AuthService() {
@@ -25,6 +29,10 @@ class AuthService {
         },
       ),
     );
+    // Restore header if token already exists from an earlier call in this run.
+    if (_token != null) {
+      _setAuthHeader(_token!);
+    }
   }
 
   /// Set auth token in Dio headers.
@@ -33,41 +41,30 @@ class AuthService {
   }
 
   // ──────────────────────────────────────────────────
-  // Token / Session helpers
+  // Token / Session helpers (in-memory)
   // ──────────────────────────────────────────────────
 
-  /// Get stored auth token.
-  Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
-  }
+  /// Get current auth token (in-memory).
+  String? getToken() => _token;
 
   /// Check if user is authenticated.
-  Future<bool> isAuthenticated() async {
-    final token = await getToken();
-    return token != null && token.isNotEmpty;
+  bool isAuthenticated() => _token != null && _token!.isNotEmpty;
+
+  /// Store token and user data in-memory.
+  void _saveSession(String token, Map<String, dynamic> user) {
+    _token = token;
+    _currentUser = user;
+    _setAuthHeader(token);
   }
 
-  /// Store token and user data.
-  Future<void> _saveSession(String token, Map<String, dynamic> user) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
-    await prefs.setString(_userKey, jsonEncode(user));
-  }
-
-  /// Get stored user data.
-  Future<Map<String, dynamic>?> getStoredUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(_userKey);
-    if (json == null) return null;
-    return jsonDecode(json) as Map<String, dynamic>;
-  }
+  /// Get current user data (in-memory).
+  Map<String, dynamic>? getStoredUser() => _currentUser;
 
   /// Clear session.
-  Future<void> clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_userKey);
+  void clearSession() {
+    _token = null;
+    _currentUser = null;
+    _dio.options.headers.remove('Authorization');
   }
 
   // ──────────────────────────────────────────────────
@@ -128,8 +125,7 @@ class AuthService {
       final result = response.data as Map<String, dynamic>;
 
       if (result['success'] == true && result['token'] != null) {
-        await _saveSession(result['token'], result['user']);
-        _setAuthHeader(result['token']);
+        _saveSession(result['token'], result['user']);
       }
 
       return result;
@@ -160,8 +156,7 @@ class AuthService {
       final result = response.data as Map<String, dynamic>;
 
       if (result['success'] == true && result['token'] != null) {
-        await _saveSession(result['token'], result['user']);
-        _setAuthHeader(result['token']);
+        _saveSession(result['token'], result['user']);
       }
 
       return result;
@@ -199,7 +194,7 @@ class AuthService {
   /// Logout.
   Future<void> logout() async {
     try {
-      final token = await getToken();
+      final token = getToken();
       if (token != null) {
         _setAuthHeader(token);
         await _dio.post('/logout');
@@ -207,14 +202,14 @@ class AuthService {
     } catch (_) {
       // Ignore errors on logout
     } finally {
-      await clearSession();
+      clearSession();
     }
   }
 
   /// Get current user info.
   Future<Map<String, dynamic>> getUser() async {
     try {
-      final token = await getToken();
+      final token = getToken();
       if (token != null) _setAuthHeader(token);
       final response = await _dio.get('/user');
       return response.data as Map<String, dynamic>;
