@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -594,11 +595,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               titleSpacing: 16,
               title: Row(
                 children: [
-                  Image.asset(
-                    'assets/images/top-logo.png',
+                  SvgPicture.asset(
+                    'assets/images/icons/logo.svg',
                     height: 22,
+                    width: 22,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const SizedBox(width: 0),
                   ),
                   const SizedBox(width: 10),
                   Expanded(

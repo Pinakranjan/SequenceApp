@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,8 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   Timer? _navigationTimer;
+
+  static const String _logoAsset = 'assets/images/icons/logo.svg';
 
   @override
   void initState() {
@@ -57,12 +60,12 @@ class _SplashScreenState extends State<SplashScreen> {
           Container(
             decoration: const BoxDecoration(gradient: AppColors.headerGradient),
             child: Center(
-              child: Image.asset(
-                'assets/images/logo.png',
+              child: SvgPicture.asset(
+                _logoAsset,
                 width: 180,
                 fit: BoxFit.contain,
-                errorBuilder:
-                    (_, __, ___) =>
+                placeholderBuilder:
+                    (_) =>
                         const Icon(Icons.school, size: 80, color: Colors.white),
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
 import '../../../providers/institute_provider.dart';
@@ -93,11 +94,10 @@ class InstitutesScreen extends ConsumerWidget {
                         ),
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxHeight: 70),
-                          child: Image.asset(
-                            'assets/images/top-logo.png',
+                          child: SvgPicture.asset(
+                            'assets/images/icons/logo.svg',
                             fit: BoxFit.contain,
                             alignment: Alignment.topCenter,
-                            errorBuilder: (_, __, ___) => const SizedBox(),
                           ),
                         ),
                       ),
@@ -211,11 +211,10 @@ class InstitutesScreen extends ConsumerWidget {
                         ),
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxHeight: 70),
-                          child: Image.asset(
-                            'assets/images/top-logo.png',
+                          child: SvgPicture.asset(
+                            'assets/images/icons/logo.svg',
                             fit: BoxFit.contain,
                             alignment: Alignment.topCenter,
-                            errorBuilder: (_, __, ___) => const SizedBox(),
                           ),
                         ),
                       ),

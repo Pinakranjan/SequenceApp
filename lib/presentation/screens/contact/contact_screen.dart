@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
@@ -13,7 +14,7 @@ class ContactScreen extends ConsumerWidget {
   const ContactScreen({super.key});
 
   static const String _contactImageAsset = 'assets/images/contact.jpg';
-  static const String _headerLogoAsset = 'assets/images/top-logo.png';
+  static const String _headerLogoAsset = 'assets/images/icons/logo.svg';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,11 +34,11 @@ class ContactScreen extends ConsumerWidget {
             titleSpacing: 16,
             title: Row(
               children: [
-                Image.asset(
+                SvgPicture.asset(
                   _headerLogoAsset,
                   height: 22,
+                  width: 22,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const SizedBox(width: 0),
                 ),
                 const SizedBox(width: 10),
                 Expanded(

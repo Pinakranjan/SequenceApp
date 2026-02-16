@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
@@ -131,12 +132,10 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
                                     constraints: const BoxConstraints(
                                       maxHeight: 70,
                                     ),
-                                    child: Image.asset(
-                                      'assets/images/top-logo.png',
+                                    child: SvgPicture.asset(
+                                      'assets/images/icons/logo.svg',
                                       fit: BoxFit.contain,
                                       alignment: Alignment.topCenter,
-                                      errorBuilder:
-                                          (_, __, ___) => const SizedBox(),
                                     ),
                                   ),
                                 ),
