@@ -24,6 +24,9 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // PIN validation visual feedback: 'idle', 'success', 'error'
+  String _pinValidationState = 'idle';
+
   final _passwordController = TextEditingController();
   final List<TextEditingController> _pinControllers = List.generate(
     4,
@@ -71,7 +74,10 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _pinValidationState = 'idle';
+    });
 
     final authService = ref.read(authServiceProvider);
 
@@ -83,17 +89,38 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     );
 
     if (!mounted) return;
-    setState(() => _isLoading = false);
 
     if (result['success'] == true) {
+      if (_authMethod == 'pin') {
+        setState(() {
+          _pinValidationState = 'success';
+          _isLoading = false;
+        });
+        // Brief pause to show green feedback before navigating
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (!mounted) return;
+      } else {
+        setState(() => _isLoading = false);
+      }
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     } else {
-      _showError(result['message'] ?? 'Incorrect credentials');
       if (_authMethod == 'pin') {
+        setState(() {
+          _pinValidationState = 'error';
+          _isLoading = false;
+        });
+        _showError(result['message'] ?? 'Incorrect credentials');
+        // Brief pause to show red feedback before clearing
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return;
+        setState(() => _pinValidationState = 'idle');
         for (final c in _pinControllers) {
           c.clear();
         }
         _pinFocusNodes[0].requestFocus();
+      } else {
+        setState(() => _isLoading = false);
+        _showError(result['message'] ?? 'Incorrect credentials');
       }
     }
   }
@@ -199,24 +226,11 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child:
-                          photoUrl != null && photoUrl.isNotEmpty
-                              ? Image.network(
-                                photoUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder:
-                                    (_, __, ___) => Container(
-                                      color: AppColors.primaryGreen.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 32,
-                                        color: AppColors.primaryGreen,
-                                      ),
-                                    ),
-                              )
-                              : Container(
+                      child: photoUrl != null && photoUrl.isNotEmpty
+                          ? Image.network(
+                              photoUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
                                 color: AppColors.primaryGreen.withValues(
                                   alpha: 0.2,
                                 ),
@@ -226,6 +240,17 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                                   color: AppColors.primaryGreen,
                                 ),
                               ),
+                            )
+                          : Container(
+                              color: AppColors.primaryGreen.withValues(
+                                alpha: 0.2,
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                size: 32,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -302,23 +327,22 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         ),
                         elevation: 2,
                       ),
-                      child:
-                          _isLoading
-                              ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                              : const Text(
-                                'Unlock',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
                               ),
+                            )
+                          : const Text(
+                              'Unlock',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
 
@@ -399,6 +423,36 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   }
 
   Widget _buildPinInput(ThemeData theme) {
+    // Colors matching the Laravel lock screen CSS
+    const successBorder = Color(0xFF10B981);
+    const successFill = Color(0xFFD1FAE5);
+    const successText = Color(0xFF065F46);
+    const errorBorder = Color(0xFFEF4444);
+    const errorFill = Color(0xFFFEE2E2);
+    const errorText = Color(0xFF991B1B);
+    const idleBorder = Color(0xFFD1D5DB);
+
+    Color borderColor;
+    Color fillColor;
+    Color textColor;
+
+    switch (_pinValidationState) {
+      case 'success':
+        borderColor = successBorder;
+        fillColor = successFill;
+        textColor = successText;
+        break;
+      case 'error':
+        borderColor = errorBorder;
+        fillColor = errorFill;
+        textColor = errorText;
+        break;
+      default:
+        borderColor = idleBorder;
+        fillColor = Colors.white;
+        textColor = const Color(0xFF1A1A1A);
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
@@ -412,33 +466,40 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             maxLength: 1,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               counterText: '',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: fillColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFD1D5DB),
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: borderColor, width: 2),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFD1D5DB),
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: borderColor, width: 2),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+                borderSide: BorderSide(
+                  color: _pinValidationState == 'idle'
+                      ? AppColors.primaryGreen
+                      : borderColor,
+                  width: 2,
+                ),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 16),
             ),
             onChanged: (value) {
+              // Reset validation state when user starts typing
+              if (_pinValidationState != 'idle') {
+                setState(() => _pinValidationState = 'idle');
+              }
               if (value.length == 1 && index < 3) {
                 _pinFocusNodes[index + 1].requestFocus();
               }

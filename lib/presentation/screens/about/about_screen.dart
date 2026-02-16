@@ -84,11 +84,15 @@ class OrdersScreen extends ConsumerWidget {
                 },
                 itemBuilder:
                     (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'lock',
                         child: Row(
                           children: [
-                            Icon(Icons.lock_outline, size: 20),
+                            Icon(
+                              Icons.lock_outline,
+                              size: 20,
+                              color: Colors.grey[700],
+                            ),
                             SizedBox(width: 10),
                             Text('Lock Screen'),
                           ],

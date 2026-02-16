@@ -13,18 +13,13 @@ class LandingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0A0E1A), Color(0xFF1A1F35), Color(0xFF0A0E1A)],
-          ),
-        ),
+        decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
@@ -34,7 +29,7 @@ class LandingScreen extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   // ── Top Nav Bar ──
-                  _buildNavBar(context),
+                  _buildNavBar(context, isDark),
 
                   SizedBox(height: size.height * 0.06),
 
@@ -78,7 +73,6 @@ class LandingScreen extends StatelessWidget {
                     'Smart Vehicle',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.displaySmall?.copyWith(
-                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       height: 1.2,
                     ),
@@ -95,7 +89,7 @@ class LandingScreen extends StatelessWidget {
                       'Sequencing',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.displaySmall?.copyWith(
-                        color: Colors.white,
+                        color: Colors.white, // Required for ShaderMask
                         fontWeight: FontWeight.bold,
                         height: 1.2,
                       ),
@@ -105,7 +99,6 @@ class LandingScreen extends StatelessWidget {
                     'for Modern Logistics',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.displaySmall?.copyWith(
-                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       height: 1.2,
                     ),
@@ -118,7 +111,9 @@ class LandingScreen extends StatelessWidget {
                     'Streamline your vehicle dispatch operations with intelligent sequencing, real-time tracking, and multi-tenant management.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white60,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(
+                        alpha: 0.7,
+                      ),
                       height: 1.5,
                     ),
                   ),
@@ -165,9 +160,9 @@ class LandingScreen extends StatelessWidget {
                           () => Navigator.of(context).pushNamed('/login'),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: theme.dividerColor.withValues(alpha: 0.5),
                         ),
-                        foregroundColor: Colors.white,
+                        foregroundColor: theme.textTheme.bodyLarge?.color,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -185,12 +180,12 @@ class LandingScreen extends StatelessWidget {
                   const SizedBox(height: 48),
 
                   // ── Stat Cards ──
-                  _buildStatCards(theme),
+                  _buildStatCards(theme, isDark),
 
                   const SizedBox(height: 48),
 
                   // ── Feature Grid ──
-                  _buildFeatureGrid(theme),
+                  _buildFeatureGrid(theme, isDark),
 
                   const SizedBox(height: 40),
                 ],
@@ -202,7 +197,7 @@ class LandingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNavBar(BuildContext context) {
+  Widget _buildNavBar(BuildContext context, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -233,10 +228,10 @@ class LandingScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Sequence',
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.textPrimaryLight,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -258,7 +253,7 @@ class LandingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCards(ThemeData theme) {
+  Widget _buildStatCards(ThemeData theme, bool isDark) {
     final stats = [
       {'icon': Icons.directions_car, 'value': '500+', 'label': 'Vehicles'},
       {'icon': Icons.timer_outlined, 'value': '98%', 'label': 'On-time'},
@@ -276,11 +271,27 @@ class LandingScreen extends StatelessWidget {
                   horizontal: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color:
+                      isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color:
+                        isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : AppColors.dividerLight.withValues(alpha: 0.5),
                   ),
+                  boxShadow:
+                      isDark
+                          ? null
+                          : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                 ),
                 child: Column(
                   children: [
@@ -293,7 +304,6 @@ class LandingScreen extends StatelessWidget {
                     Text(
                       stat['value'] as String,
                       style: theme.textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -301,7 +311,9 @@ class LandingScreen extends StatelessWidget {
                     Text(
                       stat['label'] as String,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white54,
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],
@@ -312,7 +324,7 @@ class LandingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureGrid(ThemeData theme) {
+  Widget _buildFeatureGrid(ThemeData theme, bool isDark) {
     final features = [
       {
         'icon': Icons.dashboard_outlined,
@@ -341,14 +353,15 @@ class LandingScreen extends StatelessWidget {
         Text(
           'Powerful Features',
           style: theme.textTheme.titleLarge?.copyWith(
-            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Everything you need for vehicle logistics',
-          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+          ),
         ),
         const SizedBox(height: 24),
         GridView.count(
@@ -363,11 +376,27 @@ class LandingScreen extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
+                    color:
+                        isDark
+                            ? Colors.white.withValues(alpha: 0.04)
+                            : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color:
+                          isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : AppColors.dividerLight.withValues(alpha: 0.5),
                     ),
+                    boxShadow:
+                        isDark
+                            ? null
+                            : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,7 +419,6 @@ class LandingScreen extends StatelessWidget {
                       Text(
                         f['title'] as String,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -398,7 +426,9 @@ class LandingScreen extends StatelessWidget {
                       Text(
                         f['desc'] as String,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white54,
+                          color: theme.textTheme.bodySmall?.color?.withValues(
+                            alpha: 0.7,
+                          ),
                           fontSize: 11,
                         ),
                         maxLines: 2,
