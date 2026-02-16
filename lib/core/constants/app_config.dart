@@ -27,13 +27,6 @@ class AppConfig {
   // API CONFIGURATION
   // ============================================
 
-  /// Base URL for the OJEE API
-  /// Change this to switch between dev/staging/production
-  static const String apiBaseUrl = 'https://apidev.odishajee.com';
-
-  /// PDF base URL for downloadable documents
-  static const String pdfBaseUrl = 'https://odishajee.com/news_document/';
-
   /// API authentication token
   static const String apiToken = '3dd43398ddc6de3f413295e54fdf6cf8';
 
@@ -50,8 +43,7 @@ class AppConfig {
   static const int themePrimaryColorValue = primaryColorValue;
 
   /// Primary brand color (hex value without #)
-  /// OJEE Green: 0D4E2A
-  static const int primaryColorValue = 0xFF0D4E2A;
+  static const int primaryColorValue = 0xFF745418; //0xFF0D4E2A
 
   /// Primary color light variant
   static const int primaryColorLightValue = 0xFF1A7A45;

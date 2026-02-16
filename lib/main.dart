@@ -55,18 +55,18 @@ Future<void> main() async {
   // Remove native splash now that Flutter is ready
   // FlutterNativeSplash.remove(); // Moved to splash_screen.dart
 
-  runApp(const ProviderScope(child: OJEEApp()));
+  runApp(const ProviderScope(child: SequenceApp()));
 }
 
 /// Main application widget
-class OJEEApp extends ConsumerStatefulWidget {
-  const OJEEApp({super.key});
+class SequenceApp extends ConsumerStatefulWidget {
+  const SequenceApp({super.key});
 
   @override
-  ConsumerState<OJEEApp> createState() => _OJEEAppState();
+  ConsumerState<SequenceApp> createState() => _SequenceAppState();
 }
 
-class _OJEEAppState extends ConsumerState<OJEEApp> {
+class _SequenceAppState extends ConsumerState<SequenceApp> {
   @override
   void initState() {
     super.initState();
@@ -83,7 +83,7 @@ class _OJEEAppState extends ConsumerState<OJEEApp> {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
-      title: 'OJEE 2026',
+      title: 'Sequence',
       debugShowCheckedModeBanner: false,
       navigatorKey: rootNavigatorKey,
       theme: AppTheme.lightTheme,

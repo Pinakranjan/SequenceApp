@@ -116,7 +116,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.dark(
-        primary: AppColors.primaryGreenLight,
+        primary: AppColors.primaryGreen,
         onPrimary: Colors.white,
         secondary: AppColors.goldAccent,
         onSecondary: Colors.black,
@@ -160,14 +160,14 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.primaryGreenLight,
+        backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryGreenLight,
+          backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
           elevation: 2,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -193,7 +193,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryGreenLight, width: 2),
+          borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -206,7 +206,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.cardDark,
-        selectedColor: AppColors.primaryGreenLight,
+        selectedColor: AppColors.primaryGreen,
         labelStyle: GoogleFonts.poppins(fontSize: 14, color: Colors.white),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

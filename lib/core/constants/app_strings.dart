@@ -3,8 +3,8 @@ class AppStrings {
   AppStrings._();
 
   // App Info
-  static const String appName = 'OJEE 2026';
-  static const String appTitle = 'Odisha Joint Entrance Examination';
+  static const String appName = 'Sequence';
+  static const String appTitle = 'Sequence';
   static const String appTagline = 'Your Gateway to Professional Education';
 
   // Navigation
@@ -14,7 +14,7 @@ class AppStrings {
   static const String navContact = 'Contact';
 
   // About Section
-  static const String aboutTitle = 'About OJEE';
+  static const String aboutTitle = 'About Sequence';
   static const String aboutDescription = '''
 Consequent upon the provisions of the Odisha Professional Educational Institutions (Regulation of Admission and Fixation of Fee) Act, 2007, the Odisha Joint Entrance Examination Committee was formed on recommendation of Policy Planning Body with due approval by the Government (Skill Development and Technical Education Department) following the resolution no: I-TTE-45/2013-3842/ETET dated 04.07.2013 for the purpose of holding Common Entrance Examinations and conducting counselling process for admission to various Undergraduate / Postgraduate Level Professional Courses in the State of Odisha.
 ''';

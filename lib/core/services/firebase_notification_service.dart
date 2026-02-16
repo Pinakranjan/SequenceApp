@@ -45,10 +45,10 @@ class FirebaseNotificationService {
   int _tokenRetryCount = 0;
   static const int _maxTokenRetries = 5;
 
-  static const String _androidChannelId = 'ojee_notices';
-  static const String _androidChannelName = 'Notices';
+  static const String _androidChannelId = 'sequence_notifications';
+  static const String _androidChannelName = 'Notifications';
   static const String _androidChannelDescription =
-      'OJEE notices and announcements';
+      'Sequence notifications and announcements';
 
   /// Initialize Firebase and request permissions
   Future<void> initialize() async {
@@ -215,7 +215,7 @@ class FirebaseNotificationService {
   }
 
   Future<void> _showForegroundLocalNotification(RemoteMessage message) async {
-    final title = message.notification?.title ?? 'OJEE Notice';
+    final title = message.notification?.title ?? 'Sequence';
     final body = message.notification?.body ?? '';
 
     final payload = _buildPayload(message);

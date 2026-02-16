@@ -13,10 +13,10 @@ import 'package:sequence/main.dart';
 
 void main() {
   testWidgets('App boots smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: OJEEApp()));
+    await tester.pumpWidget(const ProviderScope(child: SequenceApp()));
     await tester.pump();
 
     // Basic sanity: the widget tree built.
-    expect(find.byType(OJEEApp), findsOneWidget);
+    expect(find.byType(SequenceApp), findsOneWidget);
   });
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_config.dart';
 
-/// App color palette - OJEE branding colors
 /// Primary colors are sourced from AppConfig for easy modification
 class AppColors {
   AppColors._();

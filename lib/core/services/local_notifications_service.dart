@@ -78,15 +78,15 @@ class LocalNotificationsService {
   /// UI code can set this to invalidate providers.
   void Function(String type)? onForegroundSnoozeComplete;
 
-  static const String remindersAndroidChannelId = 'ojee_reminders';
+  static const String remindersAndroidChannelId = 'sequence_reminders';
   static const String remindersAndroidChannelName = 'Reminders';
   static const String remindersAndroidChannelDescription =
       'Planner and notice reminders';
 
-  static const String pushAndroidChannelId = 'ojee_notices';
-  static const String pushAndroidChannelName = 'Notices';
+  static const String pushAndroidChannelId = 'sequence_notifications';
+  static const String pushAndroidChannelName = 'Notifications';
   static const String pushAndroidChannelDescription =
-      'OJEE notices and announcements';
+      'Sequence notifications and announcements';
 
   FlutterLocalNotificationsPlugin get plugin => _plugin;
 
