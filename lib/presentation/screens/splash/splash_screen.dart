@@ -52,6 +52,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -60,13 +62,33 @@ class _SplashScreenState extends State<SplashScreen> {
           Container(
             decoration: const BoxDecoration(gradient: AppColors.headerGradient),
             child: Center(
-              child: SvgPicture.asset(
-                _logoAsset,
-                width: 180,
-                fit: BoxFit.contain,
-                placeholderBuilder:
-                    (_) =>
-                        const Icon(Icons.school, size: 80, color: Colors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset(
+                    _logoAsset,
+                    width: 180,
+                    fit: BoxFit.contain,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.logoTint,
+                      BlendMode.srcIn,
+                    ),
+                    placeholderBuilder:
+                        (_) => const Icon(
+                          Icons.school,
+                          size: 80,
+                          color: Colors.white,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Sequence',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

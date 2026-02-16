@@ -600,6 +600,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                     height: 22,
                     width: 22,
                     fit: BoxFit.contain,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.logoTint,
+                      BlendMode.srcIn,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(

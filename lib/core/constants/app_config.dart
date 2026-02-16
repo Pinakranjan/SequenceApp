@@ -65,6 +65,11 @@ class AppConfig {
   /// Accent color light variant
   static const int accentColorLightValue = 0xFFE5C76B;
 
+  /// Logo tint color used when rendering SVG logo assets.
+  /// Note: Flutter will NOT automatically pick this up from the Laravel app.
+  /// Keep in sync manually, or expose a backend endpoint to fetch it.
+  static const int logoTintColorValue = 0xFF38B1C9;
+
   // ============================================
   // HEADER GRADIENT (WEBSITE MATCH)
   // ============================================

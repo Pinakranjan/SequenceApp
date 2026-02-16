@@ -136,6 +136,10 @@ class _NoticesScreenState extends ConsumerState<NoticesScreen> {
                                       'assets/images/icons/logo.svg',
                                       fit: BoxFit.contain,
                                       alignment: Alignment.topCenter,
+                                      colorFilter: const ColorFilter.mode(
+                                        AppColors.logoTint,
+                                        BlendMode.srcIn,
+                                      ),
                                     ),
                                   ),
                                 ),

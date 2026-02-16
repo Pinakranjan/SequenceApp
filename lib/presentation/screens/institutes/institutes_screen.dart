@@ -98,6 +98,10 @@ class InstitutesScreen extends ConsumerWidget {
                             'assets/images/icons/logo.svg',
                             fit: BoxFit.contain,
                             alignment: Alignment.topCenter,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.logoTint,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ),
                       ),
@@ -215,6 +219,10 @@ class InstitutesScreen extends ConsumerWidget {
                             'assets/images/icons/logo.svg',
                             fit: BoxFit.contain,
                             alignment: Alignment.topCenter,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.logoTint,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ),
                       ),

@@ -17,6 +17,9 @@ class AppColors {
   static const Color goldAccent = Color(AppConfig.accentColorValue);
   static const Color goldAccentLight = Color(AppConfig.accentColorLightValue);
 
+  // Logo tint (from AppConfig)
+  static const Color logoTint = Color(AppConfig.logoTintColorValue);
+
   // Header Gradient Colors (from AppConfig)
   static const Color headerGradientStart = Color(
     AppConfig.headerGradientStartColorValue,
