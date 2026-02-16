@@ -39,11 +39,8 @@ class AppConfig {
   // ============================================
 
   /// Primary theme color (single place to change the app's main color).
-  /// Update this (and optionally the variants below) to re-skin the app.
-  static const int themePrimaryColorValue = primaryColorValue;
-
-  /// Primary brand color (hex value without #)
-  static const int primaryColorValue = 0xFF745418; //0xFF0D4E2A
+  /// Update this (and optionally the related variants below) to re-skin the app.
+  static const int themePrimaryColorValue = 0xFF745418; //0xFF0D4E2A
 
   /// Primary color light variant
   static const int primaryColorLightValue = 0xFF1A7A45;
@@ -57,24 +54,9 @@ class AppConfig {
   /// Accent color light variant
   static const int accentColorLightValue = 0xFFE5C76B;
 
-  /// Logo tint color used when rendering SVG logo assets.
-  /// Note: Flutter will NOT automatically pick this up from the Laravel app.
-  /// Keep in sync manually, or expose a backend endpoint to fetch it.
-  static const int logoTintColorValue = 0xFF38B1C9;
-
-  // ============================================
-  // HEADER GRADIENT (WEBSITE MATCH)
-  // ============================================
-
-  /// Header gradient start color (blue)
-  static const int headerGradientStartColorValue = 0xFF2A4AAE;
-
-  /// Header gradient end color (teal)
-  static const int headerGradientEndColorValue = 0xFF00B5B3;
-
-  /// Collapsed Header/AppBar background color
-  /// Should match the gradient start or a dominant color
-  static const int appBarColorValue = headerGradientStartColorValue;
+  /// Foreground icon/logo tint color used over header/splash backgrounds.
+  /// Keep separate from themePrimaryColorValue for better contrast.
+  static const int iconTintColorValue = 0xFF38B1C9;
 
   // ============================================
   // HEADER & LABEL COLORS

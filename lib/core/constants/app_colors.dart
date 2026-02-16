@@ -17,18 +17,18 @@ class AppColors {
   static const Color goldAccentLight = Color(AppConfig.accentColorLightValue);
 
   // Logo tint (from AppConfig)
-  static const Color logoTint = Color(AppConfig.logoTintColorValue);
+  static const Color logoTint = Color(AppConfig.iconTintColorValue);
 
   // Header Gradient Colors (from AppConfig)
   static const Color headerGradientStart = Color(
-    AppConfig.headerGradientStartColorValue,
+    AppConfig.themePrimaryColorValue,
   );
   static const Color headerGradientEnd = Color(
-    AppConfig.headerGradientEndColorValue,
+    AppConfig.themePrimaryColorValue,
   );
 
   // Layout Colors
-  static const Color appBarColor = Color(AppConfig.appBarColorValue);
+  static const Color appBarColor = Color(AppConfig.themePrimaryColorValue);
 
   // Light Theme Colors
   static const Color backgroundLight = Color(0xFFF5F7FA);

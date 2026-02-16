@@ -74,6 +74,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -86,14 +87,15 @@ flutter:
     - assets/lottie/
 
 # Flutter Native Splash Configuration
-# Run: dart run flutter_native_splash:create
+# Sync with AppConfig first: python3 scripts/sync_splash_color.py
+# Then generate native splash: dart run flutter_native_splash:create
 flutter_native_splash:
   # Use solid color for splash screen
-  color: "#2979B8"
+  color: "#745418"
 
   # Android 12+ settings
   android_12:
-    color: "#2979B8"
+    color: "#745418"
 
   # iOS and fullscreen settings
   ios: true
