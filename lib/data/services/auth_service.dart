@@ -1,10 +1,14 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../core/constants/app_config.dart';
 
 /// Service for communicating with the Laravel Auth API.
 ///
-/// Token and user data are kept **in-memory only** so that closing
-/// the app automatically clears the session and requires re-login.
+/// Access token, refresh token and user data are kept **in-memory only** so
+/// closing the app clears the session and requires re-login.
 class AuthService {
   // Change this base URL to your production URL when deploying.
   static const String _baseUrl = 'http://127.0.0.1:9000/api/auth';
@@ -12,10 +16,14 @@ class AuthService {
   late final Dio _dio;
 
   // In-memory session — lost when the app process dies.
-  static String? _token;
+  static String? _accessToken;
+  static String? _refreshToken;
+  static String? _deviceUuid;
+  static String? _lastSessionEndReason;
   static Map<String, dynamic>? _currentUser;
 
   static const String _rememberedEmailKey = 'remembered_email';
+  static const String _deviceUuidKey = 'device_uuid';
 
   AuthService() {
     _dio = Dio(
@@ -30,8 +38,8 @@ class AuthService {
       ),
     );
     // Restore header if token already exists from an earlier call in this run.
-    if (_token != null) {
-      _setAuthHeader(_token!);
+    if (_accessToken != null) {
+      _setAuthHeader(_accessToken!);
     }
   }
 
@@ -45,16 +53,30 @@ class AuthService {
   // ──────────────────────────────────────────────────
 
   /// Get current auth token (in-memory).
-  String? getToken() => _token;
+  String? getToken() => _accessToken;
 
   /// Check if user is authenticated.
-  bool isAuthenticated() => _token != null && _token!.isNotEmpty;
+  bool isAuthenticated() => _accessToken != null && _accessToken!.isNotEmpty;
+
+  /// Consume and clear the latest session end reason captured from API.
+  String? consumeSessionEndReason() {
+    final reason = _lastSessionEndReason;
+    _lastSessionEndReason = null;
+    return reason;
+  }
 
   /// Store token and user data in-memory.
-  void _saveSession(String token, Map<String, dynamic> user) {
-    _token = token;
+  void _saveSession({
+    required String accessToken,
+    required String? refreshToken,
+    required String? deviceUuid,
+    required Map<String, dynamic> user,
+  }) {
+    _accessToken = accessToken;
+    _refreshToken = refreshToken;
+    _deviceUuid = deviceUuid;
     _currentUser = user;
-    _setAuthHeader(token);
+    _setAuthHeader(accessToken);
   }
 
   /// Get current user data (in-memory).
@@ -62,9 +84,131 @@ class AuthService {
 
   /// Clear session.
   void clearSession() {
-    _token = null;
+    _accessToken = null;
+    _refreshToken = null;
+    _deviceUuid = null;
     _currentUser = null;
     _dio.options.headers.remove('Authorization');
+  }
+
+  String _platformLabel() {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.windows:
+        return 'windows';
+      case TargetPlatform.macOS:
+        return 'macos';
+      case TargetPlatform.linux:
+        return 'linux';
+      case TargetPlatform.fuchsia:
+        return 'fuchsia';
+    }
+  }
+
+  Future<String> _ensureDeviceUuid() async {
+    if (_deviceUuid != null && _deviceUuid!.isNotEmpty) {
+      return _deviceUuid!;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(_deviceUuidKey);
+    if (existing != null && existing.isNotEmpty) {
+      _deviceUuid = existing;
+      return existing;
+    }
+
+    final generated = const Uuid().v4();
+    await prefs.setString(_deviceUuidKey, generated);
+    _deviceUuid = generated;
+    return generated;
+  }
+
+  Future<Map<String, dynamic>> _buildDevicePayload() async {
+    final platform = _platformLabel();
+    final deviceUuid = await _ensureDeviceUuid();
+
+    return {
+      'device_uuid': deviceUuid,
+      'platform': platform,
+      'device_name': platform,
+      'app_version': AppConfig.appVersion,
+    };
+  }
+
+  Future<bool> refreshAccessToken() async {
+    if (_refreshToken == null || _refreshToken!.isEmpty) {
+      _lastSessionEndReason = 'NO_REFRESH_TOKEN';
+      return false;
+    }
+
+    final deviceUuid = await _ensureDeviceUuid();
+
+    try {
+      final response = await _dio.post(
+        '/refresh',
+        data: {'refresh_token': _refreshToken, 'device_uuid': deviceUuid},
+      );
+
+      final result = response.data as Map<String, dynamic>;
+      if (result['success'] != true) {
+        final reason = result['reason'] as String?;
+        _lastSessionEndReason = reason ?? 'SESSION_INVALIDATED';
+        return false;
+      }
+
+      final newAccessToken = result['access_token'] as String?;
+      final newRefreshToken = result['refresh_token'] as String?;
+      final newDeviceUuid = (result['device_uuid'] as String?) ?? deviceUuid;
+
+      if (newAccessToken == null || newAccessToken.isEmpty) {
+        return false;
+      }
+
+      _saveSession(
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        deviceUuid: newDeviceUuid,
+        user: _currentUser ?? <String, dynamic>{},
+      );
+
+      _lastSessionEndReason = null;
+
+      return true;
+    } on DioException catch (e) {
+      if (e.response?.data is Map<String, dynamic>) {
+        final data = e.response!.data as Map<String, dynamic>;
+        _lastSessionEndReason =
+            (data['reason'] as String?) ?? 'SESSION_INVALIDATED';
+      } else {
+        _lastSessionEndReason = 'SESSION_INVALIDATED';
+      }
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> _authorizedCall(
+    Future<Response<dynamic>> Function() request,
+  ) async {
+    try {
+      final response = await request();
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          try {
+            final retryResponse = await request();
+            return retryResponse.data as Map<String, dynamic>;
+          } on DioException catch (retryError) {
+            return _handleError(retryError);
+          }
+        }
+      }
+      return _handleError(e);
+    }
   }
 
   // ──────────────────────────────────────────────────
@@ -111,9 +255,11 @@ class AuthService {
     String? pin,
   }) async {
     try {
+      final devicePayload = await _buildDevicePayload();
       final data = <String, dynamic>{
         'email': email.trim().toLowerCase(),
         'auth_method': authMethod,
+        ...devicePayload,
       };
       if (authMethod == 'password') {
         data['password'] = password;
@@ -124,8 +270,19 @@ class AuthService {
       final response = await _dio.post('/login', data: data);
       final result = response.data as Map<String, dynamic>;
 
-      if (result['success'] == true && result['token'] != null) {
-        _saveSession(result['token'], result['user']);
+      final accessToken =
+          (result['access_token'] ?? result['token']) as String?;
+      final refreshToken = result['refresh_token'] as String?;
+      final deviceUuid = result['device_uuid'] as String?;
+
+      if (result['success'] == true && accessToken != null) {
+        _saveSession(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          deviceUuid: deviceUuid,
+          user:
+              (result['user'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+        );
       }
 
       return result;
@@ -143,6 +300,7 @@ class AuthService {
     required String companyCode,
   }) async {
     try {
+      final devicePayload = await _buildDevicePayload();
       final response = await _dio.post(
         '/register',
         data: {
@@ -151,12 +309,24 @@ class AuthService {
           'password': password,
           'password_confirmation': passwordConfirmation,
           'company_code': companyCode.trim().toUpperCase(),
+          ...devicePayload,
         },
       );
       final result = response.data as Map<String, dynamic>;
 
-      if (result['success'] == true && result['token'] != null) {
-        _saveSession(result['token'], result['user']);
+      final accessToken =
+          (result['access_token'] ?? result['token']) as String?;
+      final refreshToken = result['refresh_token'] as String?;
+      final deviceUuid = result['device_uuid'] as String?;
+
+      if (result['success'] == true && accessToken != null) {
+        _saveSession(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          deviceUuid: deviceUuid,
+          user:
+              (result['user'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+        );
       }
 
       return result;
@@ -197,7 +367,7 @@ class AuthService {
       final token = getToken();
       if (token != null) {
         _setAuthHeader(token);
-        await _dio.post('/logout');
+        await _authorizedCall(() => _dio.post('/logout'));
       }
     } catch (_) {
       // Ignore errors on logout
@@ -208,14 +378,14 @@ class AuthService {
 
   /// Get current user info.
   Future<Map<String, dynamic>> getUser() async {
-    try {
-      final token = getToken();
-      if (token != null) _setAuthHeader(token);
-      final response = await _dio.get('/user');
-      return response.data as Map<String, dynamic>;
-    } on DioException catch (e) {
-      return _handleError(e);
+    final token = getToken();
+    if (token != null) _setAuthHeader(token);
+
+    final result = await _authorizedCall(() => _dio.get('/user'));
+    if (result['success'] == true && result['user'] is Map<String, dynamic>) {
+      _currentUser = result['user'] as Map<String, dynamic>;
     }
+    return result;
   }
 
   /// Handle Dio errors uniformly.

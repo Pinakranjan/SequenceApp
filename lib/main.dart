@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,7 @@ import 'core/services/local_notifications_service.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/theme_provider.dart';
 import 'providers/connectivity_provider.dart';
+import 'providers/auth_provider.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/onboarding/onboarding_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
@@ -73,15 +76,108 @@ class SequenceApp extends ConsumerStatefulWidget {
 }
 
 class _SequenceAppState extends ConsumerState<SequenceApp> {
+  Timer? _sessionTimer;
+  bool _checkingSession = false;
+  late final _AppLifecycleBridge _lifecycleBridge;
+
   @override
   void initState() {
     super.initState();
+    _lifecycleBridge = _AppLifecycleBridge(_onLifecycleChange);
+    WidgetsBinding.instance.addObserver(_lifecycleBridge);
+    _startSessionWatcher();
 
     // Process any notification that launched the app, once the navigator exists.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FirebaseNotificationService().processPendingInitialMessage();
       LocalNotificationsService().processPendingInitialPayload();
+      _checkSessionAndHandleExpiry();
     });
+  }
+
+  void _onLifecycleChange(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startSessionWatcher();
+      _checkSessionAndHandleExpiry();
+      return;
+    }
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _sessionTimer?.cancel();
+    }
+  }
+
+  void _startSessionWatcher() {
+    _sessionTimer?.cancel();
+    _sessionTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _checkSessionAndHandleExpiry();
+    });
+  }
+
+  Future<void> _checkSessionAndHandleExpiry() async {
+    if (_checkingSession) return;
+
+    final authService = ref.read(authServiceProvider);
+    if (!authService.isAuthenticated()) return;
+
+    _checkingSession = true;
+    try {
+      final result = await authService.getUser();
+      if (result['success'] == true) {
+        return;
+      }
+
+      final reason = authService.consumeSessionEndReason();
+      final logoutMessage = _messageForSessionEndReason(reason);
+
+      authService.clearSession();
+
+      final navigator = rootNavigatorKey.currentState;
+      if (navigator != null) {
+        navigator.pushNamedAndRemoveUntil('/landing', (_) => false);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final context = rootNavigatorKey.currentContext;
+          if (context == null) return;
+          final messenger = ScaffoldMessenger.maybeOf(context);
+          messenger?.clearSnackBars();
+          messenger?.showSnackBar(
+            SnackBar(
+              content: Text(logoutMessage),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        });
+      }
+    } catch (_) {
+      // Ignore transient connectivity issues.
+    } finally {
+      _checkingSession = false;
+    }
+  }
+
+  String _messageForSessionEndReason(String? reason) {
+    switch (reason) {
+      case 'SESSION_REVOKED':
+        return 'You have been logged out because your account was used on another device.';
+      case 'REFRESH_TOKEN_EXPIRED':
+        return 'Your session expired. Please log in again.';
+      case 'DEVICE_MISMATCH':
+        return 'This session is not valid for this device. Please log in again.';
+      case 'NO_REFRESH_TOKEN':
+      case 'SESSION_INVALIDATED':
+      default:
+        return 'Your session ended. Please log in again.';
+    }
+  }
+
+  @override
+  void dispose() {
+    _sessionTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(_lifecycleBridge);
+    super.dispose();
   }
 
   @override
@@ -108,6 +204,17 @@ class _SequenceAppState extends ConsumerState<SequenceApp> {
         '/lock': (context) => const LockScreen(),
       },
     );
+  }
+}
+
+class _AppLifecycleBridge extends WidgetsBindingObserver {
+  _AppLifecycleBridge(this.onChange);
+
+  final void Function(AppLifecycleState state) onChange;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    onChange(state);
   }
 }
 
