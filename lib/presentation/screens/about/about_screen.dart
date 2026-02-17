@@ -53,26 +53,28 @@ class OrdersScreen extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child:
-                      isOffline
-                          ? SizedBox(
-                            key: const ValueKey('offline_header_lottie'),
-                            width: 30,
-                            height: 30,
-                            child: Lottie.asset(
-                              'assets/lottie/lottie_loading2.json',
-                              repeat: true,
-                            ),
-                          )
-                          : const SizedBox(
-                            key: ValueKey('offline_header_none'),
-                          ),
-                ),
               ],
             ),
             actions: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child:
+                    isOffline
+                        ? Padding(
+                          key: const ValueKey('offline_play_lottie'),
+                          padding: const EdgeInsets.only(right: 4),
+                          child: SizedBox(
+                            width: 30,
+                            height: 30,
+                            child: Lottie.asset(
+                              'assets/lottie/lottie_offline_resized.json',
+                              animate: true,
+                              repeat: true,
+                            ),
+                          ),
+                        )
+                        : const SizedBox(key: ValueKey('offline_play_none')),
+              ),
               IconButton(
                 tooltip: 'Replay Walkthrough',
                 onPressed: () {

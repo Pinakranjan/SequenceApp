@@ -63,7 +63,8 @@ class ContactScreen extends ConsumerWidget {
                             width: 30,
                             height: 30,
                             child: Lottie.asset(
-                              'assets/lottie/lottie_loading2.json',
+                              'assets/lottie/lottie_offline_resized.json',
+                              animate: true,
                               repeat: true,
                             ),
                           )

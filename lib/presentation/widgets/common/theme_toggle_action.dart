@@ -13,14 +13,7 @@ class ThemeToggleAction extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (isOffline) {
-      return Padding(
-        padding: const EdgeInsets.only(right: 12.0),
-        child: Icon(
-          Icons.wifi_off,
-          size: 20,
-          color: Theme.of(context).iconTheme.color,
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     return IconButton(
