@@ -124,6 +124,10 @@ class _SequenceAppState extends ConsumerState<SequenceApp> {
 
     _checkingSession = true;
     try {
+      // Proactively refresh the access token if it is close to expiring,
+      // so we avoid the 401 round-trip on the next API call.
+      await authService.proactiveRefreshIfNeeded();
+
       final result = await authService.getUser();
       if (result['success'] == true) {
         return;

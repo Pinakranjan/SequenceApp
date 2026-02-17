@@ -22,6 +22,7 @@ class AuthService {
   static String? _refreshToken;
   static String? _deviceUuid;
   static String? _lastSessionEndReason;
+  static DateTime? _accessTokenExpiresAt;
   static Map<String, dynamic>? _currentUser;
 
   static const String _rememberedEmailKey = 'remembered_email';
@@ -60,6 +61,26 @@ class AuthService {
   /// Check if user is authenticated.
   bool isAuthenticated() => _accessToken != null && _accessToken!.isNotEmpty;
 
+  /// Returns true if the access token will expire within the next 5 minutes.
+  bool isAccessTokenExpiringSoon() {
+    if (_accessTokenExpiresAt == null) return false;
+    final now = DateTime.now().toUtc();
+    final threshold = _accessTokenExpiresAt!.subtract(
+      const Duration(minutes: 5),
+    );
+    return now.isAfter(threshold);
+  }
+
+  /// Proactively refresh the access token if it is close to expiring.
+  /// Returns true if a refresh was performed (or not needed), false on failure.
+  Future<bool> proactiveRefreshIfNeeded() async {
+    if (!isAuthenticated()) return false;
+    if (!isAccessTokenExpiringSoon()) {
+      return true; // Not expiring soon, all good.
+    }
+    return await refreshAccessToken();
+  }
+
   /// Consume and clear the latest session end reason captured from API.
   String? consumeSessionEndReason() {
     final reason = _lastSessionEndReason;
@@ -73,11 +94,13 @@ class AuthService {
     required String? refreshToken,
     required String? deviceUuid,
     required Map<String, dynamic> user,
+    DateTime? accessTokenExpiresAt,
   }) {
     _accessToken = accessToken;
     _refreshToken = refreshToken;
     _deviceUuid = deviceUuid;
     _currentUser = user;
+    _accessTokenExpiresAt = accessTokenExpiresAt;
     _setAuthHeader(accessToken);
   }
 
@@ -90,6 +113,7 @@ class AuthService {
     _refreshToken = null;
     _deviceUuid = null;
     _currentUser = null;
+    _accessTokenExpiresAt = null;
     _dio.options.headers.remove('Authorization');
   }
 
@@ -164,6 +188,11 @@ class AuthService {
       final newAccessToken = result['access_token'] as String?;
       final newRefreshToken = result['refresh_token'] as String?;
       final newDeviceUuid = (result['device_uuid'] as String?) ?? deviceUuid;
+      final expiresAtStr = result['access_token_expires_at'] as String?;
+      final expiresAt =
+          expiresAtStr != null
+              ? DateTime.tryParse(expiresAtStr)?.toUtc()
+              : null;
 
       if (newAccessToken == null || newAccessToken.isEmpty) {
         return false;
@@ -174,6 +203,7 @@ class AuthService {
         refreshToken: newRefreshToken,
         deviceUuid: newDeviceUuid,
         user: _currentUser ?? <String, dynamic>{},
+        accessTokenExpiresAt: expiresAt,
       );
 
       _lastSessionEndReason = null;
@@ -276,6 +306,11 @@ class AuthService {
           (result['access_token'] ?? result['token']) as String?;
       final refreshToken = result['refresh_token'] as String?;
       final deviceUuid = result['device_uuid'] as String?;
+      final expiresAtStr = result['access_token_expires_at'] as String?;
+      final expiresAt =
+          expiresAtStr != null
+              ? DateTime.tryParse(expiresAtStr)?.toUtc()
+              : null;
 
       if (result['success'] == true && accessToken != null) {
         _saveSession(
@@ -284,6 +319,7 @@ class AuthService {
           deviceUuid: deviceUuid,
           user:
               (result['user'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+          accessTokenExpiresAt: expiresAt,
         );
       }
 
@@ -320,6 +356,11 @@ class AuthService {
           (result['access_token'] ?? result['token']) as String?;
       final refreshToken = result['refresh_token'] as String?;
       final deviceUuid = result['device_uuid'] as String?;
+      final expiresAtStr = result['access_token_expires_at'] as String?;
+      final expiresAt =
+          expiresAtStr != null
+              ? DateTime.tryParse(expiresAtStr)?.toUtc()
+              : null;
 
       if (result['success'] == true && accessToken != null) {
         _saveSession(
@@ -328,6 +369,7 @@ class AuthService {
           deviceUuid: deviceUuid,
           user:
               (result['user'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+          accessTokenExpiresAt: expiresAt,
         );
       }
 
