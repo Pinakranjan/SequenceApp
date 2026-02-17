@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:io';
 
 import '../../core/constants/app_config.dart';
 
@@ -203,11 +205,11 @@ class AuthService {
             final retryResponse = await request();
             return retryResponse.data as Map<String, dynamic>;
           } on DioException catch (retryError) {
-            return _handleError(retryError);
+            return await _handleError(retryError);
           }
         }
       }
-      return _handleError(e);
+      return await _handleError(e);
     }
   }
 
@@ -243,7 +245,7 @@ class AuthService {
       );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      return _handleError(e);
+      return await _handleError(e);
     }
   }
 
@@ -287,7 +289,7 @@ class AuthService {
 
       return result;
     } on DioException catch (e) {
-      return _handleError(e);
+      return await _handleError(e);
     }
   }
 
@@ -331,7 +333,7 @@ class AuthService {
 
       return result;
     } on DioException catch (e) {
-      return _handleError(e);
+      return await _handleError(e);
     }
   }
 
@@ -344,7 +346,7 @@ class AuthService {
       );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      return _handleError(e);
+      return await _handleError(e);
     }
   }
 
@@ -357,7 +359,7 @@ class AuthService {
       );
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      return _handleError(e);
+      return await _handleError(e);
     }
   }
 
@@ -407,16 +409,89 @@ class AuthService {
     return result;
   }
 
+  Future<bool> _hasDeviceInternetTransport() async {
+    final connectivityResults = await Connectivity().checkConnectivity();
+    return connectivityResults.any(
+      (result) => result != ConnectivityResult.none,
+    );
+  }
+
   /// Handle Dio errors uniformly.
-  Map<String, dynamic> _handleError(DioException e) {
+  Future<Map<String, dynamic>> _handleError(DioException e) async {
     if (e.response?.data is Map<String, dynamic>) {
-      return e.response!.data as Map<String, dynamic>;
+      final data = e.response!.data as Map<String, dynamic>;
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null && statusCode >= 500) {
+        return {
+          'success': false,
+          'valid': false,
+          'message': 'Server is down! Try again later.',
+        };
+      }
+      return data;
     }
+
+    final details = '${e.message ?? ''} ${e.error ?? ''}'.toLowerCase();
+    final hasNoInternetPattern =
+        details.contains('failed host lookup') ||
+        details.contains('network is unreachable') ||
+        details.contains('not connected') ||
+        details.contains('network unavailable') ||
+        details.contains('no internet');
+    final hasServerDownPattern =
+        details.contains('connection refused') ||
+        details.contains('actively refused') ||
+        details.contains('connection reset by peer') ||
+        details.contains('connection closed');
+    final hasInternetTransport = await _hasDeviceInternetTransport();
+
+    if (!hasInternetTransport) {
+      return {
+        'success': false,
+        'valid': false,
+        'message': 'No internet connection! Try again later.',
+      };
+    }
+
+    if (hasServerDownPattern) {
+      return {
+        'success': false,
+        'valid': false,
+        'message': 'Server is down! Try again later.',
+      };
+    }
+
+    if (e.error is SocketException && !hasServerDownPattern) {
+      return {
+        'success': false,
+        'valid': false,
+        'message': 'Server is down! Try again later.',
+      };
+    }
+
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.connectionError) {
+      if (hasNoInternetPattern) {
+        return {
+          'success': false,
+          'valid': false,
+          'message': 'No internet connection! Try again later.',
+        };
+      }
+      return {
+        'success': false,
+        'valid': false,
+        'message': 'Server is down! Try again later.',
+      };
+    }
+
     return {
       'success': false,
       'valid': false,
       'message':
-          e.response?.statusMessage ?? 'Connection error. Please try again.',
+          e.response?.statusMessage ?? 'Server is down! Try again later.',
     };
   }
 }

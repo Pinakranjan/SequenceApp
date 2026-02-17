@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
@@ -52,6 +53,23 @@ class ContactScreen extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child:
+                      isOffline
+                          ? SizedBox(
+                            key: const ValueKey('offline_header_lottie'),
+                            width: 30,
+                            height: 30,
+                            child: Lottie.asset(
+                              'assets/lottie/lottie_loading2.json',
+                              repeat: true,
+                            ),
+                          )
+                          : const SizedBox(
+                            key: ValueKey('offline_header_none'),
+                          ),
                 ),
               ],
             ),

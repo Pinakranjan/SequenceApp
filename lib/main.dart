@@ -196,12 +196,20 @@ class _SequenceAppState extends ConsumerState<SequenceApp> {
         '/': (context) => const SplashScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/home': (context) => const _OfflineAwareHomeScreen(),
-        '/landing': (context) => const LandingScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/login-credentials': (context) => const LoginCredentialsScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/lock': (context) => const LockScreen(),
+        '/landing':
+            (context) => const _OfflineAwareAuthScreen(child: LandingScreen()),
+        '/login':
+            (context) => const _OfflineAwareAuthScreen(child: LoginScreen()),
+        '/login-credentials':
+            (context) =>
+                const _OfflineAwareAuthScreen(child: LoginCredentialsScreen()),
+        '/register':
+            (context) => const _OfflineAwareAuthScreen(child: RegisterScreen()),
+        '/forgot-password':
+            (context) =>
+                const _OfflineAwareAuthScreen(child: ForgotPasswordScreen()),
+        '/lock':
+            (context) => const _OfflineAwareAuthScreen(child: LockScreen()),
       },
     );
   }
@@ -215,6 +223,50 @@ class _AppLifecycleBridge extends WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     onChange(state);
+  }
+}
+
+class _OfflineAwareAuthScreen extends ConsumerWidget {
+  const _OfflineAwareAuthScreen({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOffline = ref.watch(isOfflineProvider);
+
+    const grayscaleMatrix = ColorFilter.matrix(<double>[
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ]);
+
+    const transparentFilter = ColorFilter.mode(
+      Colors.transparent,
+      BlendMode.dst,
+    );
+
+    return ColorFiltered(
+      colorFilter: isOffline ? grayscaleMatrix : transparentFilter,
+      child: child,
+    );
   }
 }
 

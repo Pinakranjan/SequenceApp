@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../providers/connectivity_provider.dart';
 
 /// Landing screen shown after splash when not authenticated.
 /// Mirrors the Laravel landing page with Sign In / Sign Up buttons.
-class LandingScreen extends StatelessWidget {
+class LandingScreen extends ConsumerWidget {
   const LandingScreen({super.key});
 
   static const String _logoAsset = 'assets/images/icons/logo.svg';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isDark = theme.brightness == Brightness.dark;
+    final isOffline = ref.watch(isOfflineProvider);
 
     return Scaffold(
       body: Container(
@@ -32,6 +36,17 @@ class LandingScreen extends StatelessWidget {
                   _buildNavBar(context, isDark),
 
                   SizedBox(height: size.height * 0.06),
+
+                  if (isOffline)
+                    SizedBox(
+                      width: 74,
+                      height: 74,
+                      child: Lottie.asset(
+                        'assets/lottie/lottie_offline_resized.json',
+                        repeat: true,
+                      ),
+                    ),
+                  if (isOffline) const SizedBox(height: 8),
 
                   // ── Hero Badge ──
                   Container(

@@ -8,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -17,6 +18,7 @@ import '../../../data/models/planner_entry.dart';
 import '../../../data/models/planner_enums.dart';
 import '../../../data/models/notice_reminder.dart';
 import '../../../providers/home_navigation_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../../providers/notice_reminder_provider.dart';
 import '../../../providers/planner_pins_provider.dart';
 import '../../../providers/planner_provider.dart';
@@ -552,6 +554,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         visibleNotices
             .where((r) => dateOnly(r.scheduledAt).isAfter(todayDate))
             .length;
+    final isOffline = ref.watch(isOfflineProvider);
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
@@ -613,6 +616,23 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child:
+                        isOffline
+                            ? SizedBox(
+                              key: const ValueKey('offline_header_lottie'),
+                              width: 30,
+                              height: 30,
+                              child: Lottie.asset(
+                                'assets/lottie/lottie_loading2.json',
+                                repeat: true,
+                              ),
+                            )
+                            : const SizedBox(
+                              key: ValueKey('offline_header_none'),
+                            ),
                   ),
                 ],
               ),

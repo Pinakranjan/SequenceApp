@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 
 /// Login Step 2: Credentials entry with PIN/Password toggle.
 ///
@@ -162,6 +164,7 @@ class _LoginCredentialsScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isOffline = ref.watch(isOfflineProvider);
 
     return Scaffold(
       body: Container(
@@ -181,6 +184,17 @@ class _LoginCredentialsScreenState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  if (isOffline)
+                    SizedBox(
+                      width: 62,
+                      height: 62,
+                      child: Lottie.asset(
+                        'assets/lottie/lottie_offline_resized.json',
+                        repeat: true,
+                      ),
+                    ),
+                  if (isOffline) const SizedBox(height: 8),
+
                   // ── User Avatar ──
                   _buildUserPreview(theme),
 

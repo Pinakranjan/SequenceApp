@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 
 /// Forgot password screen — sends reset code email.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -61,6 +63,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isOffline = ref.watch(isOfflineProvider);
 
     return Scaffold(
       body: Container(
@@ -77,7 +80,22 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: _emailSent ? _buildSuccessView(theme) : _buildForm(theme),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (isOffline)
+                    SizedBox(
+                      width: 62,
+                      height: 62,
+                      child: Lottie.asset(
+                        'assets/lottie/lottie_offline_resized.json',
+                        repeat: true,
+                      ),
+                    ),
+                  if (isOffline) const SizedBox(height: 8),
+                  _emailSent ? _buildSuccessView(theme) : _buildForm(theme),
+                ],
+              ),
             ),
           ),
         ),

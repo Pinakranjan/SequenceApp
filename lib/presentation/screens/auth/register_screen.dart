@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_config.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 
 /// Registration screen with business code validation.
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -296,6 +298,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isOffline = ref.watch(isOfflineProvider);
 
     return Scaffold(
       body: Container(
@@ -318,6 +321,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 16),
+
+                    if (isOffline)
+                      SizedBox(
+                        width: 62,
+                        height: 62,
+                        child: Lottie.asset(
+                          'assets/lottie/lottie_offline_resized.json',
+                          repeat: true,
+                        ),
+                      ),
+                    if (isOffline) const SizedBox(height: 8),
 
                     // ── Logo ──
                     Container(
