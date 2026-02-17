@@ -108,7 +108,7 @@ class LandingScreen extends StatelessWidget {
 
                   // ── Subtitle ──
                   Text(
-                    'Streamline your vehicle dispatch operations with intelligent sequencing, real-time tracking, and multi-tenant management.',
+                    'Streamline your vehicle dispatch operations with intelligent sequencing and real-time visibility.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.textTheme.bodyMedium?.color?.withValues(
@@ -329,22 +329,14 @@ class LandingScreen extends StatelessWidget {
       {
         'icon': Icons.dashboard_outlined,
         'title': 'Fleet Dashboard',
-        'desc': 'Real-time overview of your entire fleet',
+        'desc':
+            'Real-time overview of your entire fleet in one intuitive dashboard.',
       },
       {
         'icon': Icons.sort_outlined,
         'title': 'Smart Sequencing',
-        'desc': 'AI-powered vehicle dispatch ordering',
-      },
-      {
-        'icon': Icons.business_outlined,
-        'title': 'Multi-tenant',
-        'desc': 'Separate workspaces for each business',
-      },
-      {
-        'icon': Icons.verified_user_outlined,
-        'title': 'Compliance',
-        'desc': 'Built-in regulatory compliance tools',
+        'desc':
+            'Automatically optimize vehicle dispatch order based on priority, distance, and load capacity.',
       },
     ];
 
