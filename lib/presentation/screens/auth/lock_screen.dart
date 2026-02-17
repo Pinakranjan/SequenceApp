@@ -81,8 +81,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
 
     final authService = ref.read(authServiceProvider);
 
-    final result = await authService.login(
-      email: _email,
+    final result = await authService.unlock(
       authMethod: _authMethod,
       password: _authMethod == 'password' ? _passwordController.text : null,
       pin: _authMethod == 'pin' ? _pinValue : null,
@@ -226,11 +225,24 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: photoUrl != null && photoUrl.isNotEmpty
-                          ? Image.network(
-                              photoUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                      child:
+                          photoUrl != null && photoUrl.isNotEmpty
+                              ? Image.network(
+                                photoUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (_, __, ___) => Container(
+                                      color: AppColors.primaryGreen.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 32,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                    ),
+                              )
+                              : Container(
                                 color: AppColors.primaryGreen.withValues(
                                   alpha: 0.2,
                                 ),
@@ -240,17 +252,6 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                                   color: AppColors.primaryGreen,
                                 ),
                               ),
-                            )
-                          : Container(
-                              color: AppColors.primaryGreen.withValues(
-                                alpha: 0.2,
-                              ),
-                              child: Icon(
-                                Icons.person,
-                                size: 32,
-                                color: AppColors.primaryGreen,
-                              ),
-                            ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -327,22 +328,23 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                         ),
                         elevation: 2,
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
+                      child:
+                          _isLoading
+                              ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'Unlock',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            )
-                          : const Text(
-                              'Unlock',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                     ),
                   ),
 
@@ -487,9 +489,10 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: _pinValidationState == 'idle'
-                      ? AppColors.primaryGreen
-                      : borderColor,
+                  color:
+                      _pinValidationState == 'idle'
+                          ? AppColors.primaryGreen
+                          : borderColor,
                   width: 2,
                 ),
               ),

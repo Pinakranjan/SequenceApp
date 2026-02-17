@@ -29,6 +29,9 @@ class _LoginCredentialsScreenState
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // PIN validation visual feedback: 'idle', 'success', 'error'
+  String _pinValidationState = 'idle';
+
   final _passwordController = TextEditingController();
   final List<TextEditingController> _pinControllers = List.generate(
     4,
@@ -83,7 +86,12 @@ class _LoginCredentialsScreenState
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      if (_authMethod == 'pin') {
+        _pinValidationState = 'idle';
+      }
+    });
 
     final authService = ref.read(authServiceProvider);
 
@@ -98,6 +106,15 @@ class _LoginCredentialsScreenState
     setState(() => _isLoading = false);
 
     if (result['success'] == true) {
+      if (_authMethod == 'pin') {
+        setState(() {
+          _pinValidationState = 'success';
+          _isLoading = false;
+        });
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (!mounted) return;
+      }
+
       // Check onboarding status
       final prefs = await SharedPreferences.getInstance();
       final key = 'onboarding_completed_${AppConfig.appVersion}';
@@ -115,6 +132,14 @@ class _LoginCredentialsScreenState
       _showError(result['message'] ?? 'Login failed');
       // Clear PIN on error
       if (_authMethod == 'pin') {
+        setState(() {
+          _pinValidationState = 'error';
+        });
+        await Future.delayed(const Duration(milliseconds: 700));
+        if (!mounted) return;
+        setState(() {
+          _pinValidationState = 'idle';
+        });
         for (final c in _pinControllers) {
           c.clear();
         }
@@ -420,6 +445,35 @@ class _LoginCredentialsScreenState
   }
 
   Widget _buildPinInput(ThemeData theme) {
+    const successBorder = Color(0xFF10B981);
+    const successFill = Color(0xFFD1FAE5);
+    const successText = Color(0xFF065F46);
+    const errorBorder = Color(0xFFEF4444);
+    const errorFill = Color(0xFFFEE2E2);
+    const errorText = Color(0xFF991B1B);
+    const idleBorder = Color(0xFFD1D5DB);
+
+    Color borderColor;
+    Color fillColor;
+    Color textColor;
+
+    switch (_pinValidationState) {
+      case 'success':
+        borderColor = successBorder;
+        fillColor = successFill;
+        textColor = successText;
+        break;
+      case 'error':
+        borderColor = errorBorder;
+        fillColor = errorFill;
+        textColor = errorText;
+        break;
+      default:
+        borderColor = idleBorder;
+        fillColor = Colors.white;
+        textColor = const Color(0xFF1A1A1A);
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
@@ -433,33 +487,40 @@ class _LoginCredentialsScreenState
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             maxLength: 1,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               counterText: '',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: fillColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFD1D5DB),
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: borderColor, width: 2),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFD1D5DB),
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: borderColor, width: 2),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+                borderSide: BorderSide(
+                  color:
+                      _pinValidationState == 'idle'
+                          ? AppColors.primaryGreen
+                          : borderColor,
+                  width: 2,
+                ),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 16),
             ),
             onChanged: (value) {
+              if (_pinValidationState != 'idle') {
+                setState(() => _pinValidationState = 'idle');
+              }
               if (value.length == 1 && index < 3) {
                 _pinFocusNodes[index + 1].requestFocus();
               }

@@ -376,6 +376,25 @@ class AuthService {
     }
   }
 
+  /// Unlock current session without issuing a new token pair.
+  Future<Map<String, dynamic>> unlock({
+    required String authMethod,
+    String? password,
+    String? pin,
+  }) async {
+    final token = getToken();
+    if (token != null) _setAuthHeader(token);
+
+    final data = <String, dynamic>{'auth_method': authMethod};
+    if (authMethod == 'password') {
+      data['password'] = password;
+    } else {
+      data['pin'] = pin;
+    }
+
+    return _authorizedCall(() => _dio.post('/unlock', data: data));
+  }
+
   /// Get current user info.
   Future<Map<String, dynamic>> getUser() async {
     final token = getToken();
