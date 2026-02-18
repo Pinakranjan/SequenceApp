@@ -7,25 +7,124 @@ import '../../../providers/connectivity_provider.dart';
 
 /// Landing screen shown after splash when not authenticated.
 /// Mirrors the Laravel landing page with Sign In / Sign Up buttons.
-class LandingScreen extends ConsumerWidget {
+class LandingScreen extends ConsumerStatefulWidget {
   const LandingScreen({super.key});
+
+  @override
+  ConsumerState<LandingScreen> createState() => _LandingScreenState();
+}
+
+class _LandingScreenState extends ConsumerState<LandingScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _scrollViewKey = GlobalKey();
+  final GlobalKey _inlineSignInButtonKey = GlobalKey();
+  bool _showBottomSignIn = false;
 
   static const String _logoAsset = 'assets/images/icons/logo.svg';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_updateBottomSignInVisibility);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateBottomSignInVisibility();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_updateBottomSignInVisibility);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateBottomSignInVisibility() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    final scrollViewContext = _scrollViewKey.currentContext;
+    final buttonContext = _inlineSignInButtonKey.currentContext;
+    bool shouldShowBottomSignIn = _scrollController.offset > 240;
+
+    if (scrollViewContext != null && buttonContext != null) {
+      final scrollRenderObject = scrollViewContext.findRenderObject();
+      final buttonRenderObject = buttonContext.findRenderObject();
+
+      if (scrollRenderObject is RenderBox &&
+          buttonRenderObject is RenderBox &&
+          scrollRenderObject.hasSize &&
+          buttonRenderObject.hasSize) {
+        final buttonOffsetInScrollView = buttonRenderObject.localToGlobal(
+          Offset.zero,
+          ancestor: scrollRenderObject,
+        );
+        final buttonTop = buttonOffsetInScrollView.dy;
+        final buttonBottom = buttonTop + buttonRenderObject.size.height;
+        final viewportHeight = scrollRenderObject.size.height;
+        final isInlineButtonVisible =
+            buttonBottom > 0 && buttonTop < viewportHeight;
+        shouldShowBottomSignIn = !isInlineButtonVisible;
+      }
+    }
+
+    if (_showBottomSignIn != shouldShowBottomSignIn) {
+      setState(() {
+        _showBottomSignIn = shouldShowBottomSignIn;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isDark = theme.brightness == Brightness.dark;
     final isOffline = ref.watch(isOfflineProvider);
 
     return Scaffold(
+      bottomNavigationBar:
+          _showBottomSignIn
+              ? SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed:
+                          () => Navigator.of(context).pushNamed('/login'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: theme.dividerColor.withValues(alpha: 0.5),
+                        ),
+                        backgroundColor: theme.scaffoldBackgroundColor,
+                        foregroundColor: theme.textTheme.bodyLarge?.color,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Sign In',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              : null,
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(color: theme.scaffoldBackgroundColor),
         child: SafeArea(
           child: SingleChildScrollView(
+            key: _scrollViewKey,
+            controller: _scrollController,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -168,6 +267,7 @@ class LandingScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   SizedBox(
+                    key: _inlineSignInButtonKey,
                     width: double.infinity,
                     height: 52,
                     child: OutlinedButton(
@@ -203,6 +303,10 @@ class LandingScreen extends ConsumerWidget {
                   _buildFeatureGrid(theme, isDark),
 
                   const SizedBox(height: 40),
+
+                  _buildFooter(theme, isDark),
+
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -447,6 +551,41 @@ class LandingScreen extends ConsumerWidget {
               }).toList(),
         ),
       ],
+    );
+  }
+
+  Widget _buildFooter(ThemeData theme, bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color:
+            isDark
+                ? AppColors.primaryGreen.withValues(alpha: 0.12)
+                : AppColors.primaryGreen.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        children: [
+          Text(
+            '© 2026 - ',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            'Hepta Infotech Services LLP',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
