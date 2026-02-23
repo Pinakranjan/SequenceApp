@@ -70,6 +70,10 @@ dependencies:
   introduction_screen: ^3.1.14
   permission_handler: ^12.0.1
 
+  # Voice Input & Gemini AI
+  speech_to_text: ^7.0.0
+  google_generative_ai: ^0.4.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

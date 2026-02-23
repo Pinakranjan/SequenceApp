@@ -91,4 +91,11 @@ class AppConfig {
   /// Whether to enable interactive snooze actions on local notifications.
   /// If true, notifications will show "Snooze" buttons.
   static const bool enableNotificationSnoozeActions = true;
+
+  // ============================================
+  // GEMINI AI (Voice Input)
+  // ============================================
+
+  /// Gemini API key for AI-powered voice command parsing.
+  static const String geminiApiKey = 'AIzaSyCBynLmlfS3b4SgUz3JGPlKs7zJKPptzi0';
 }

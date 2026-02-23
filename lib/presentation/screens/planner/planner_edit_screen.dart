@@ -8,6 +8,11 @@ import '../../../core/utils/title_case_formatter.dart';
 import '../../../data/models/planner_entry.dart';
 import '../../../data/models/planner_enums.dart';
 import '../../../providers/planner_provider.dart';
+import '../../../providers/connectivity_provider.dart';
+import '../../../core/services/voice_reminder_service.dart';
+import '../../widgets/common/voice_input_button.dart';
+import '../../widgets/common/voice_reminder_info_dialog.dart';
+import '../../widgets/common/powered_by_gemini_badge.dart';
 import '../../widgets/planner/category_chip.dart';
 import '../../widgets/planner/priority_chip.dart';
 
@@ -38,6 +43,7 @@ class _PlannerEditScreenState extends ConsumerState<PlannerEditScreen> {
   RecurrenceRule? _recurrence;
 
   bool _saving = false;
+  bool _parsedByAI = false;
 
   @override
   void initState() {
@@ -69,244 +75,394 @@ class _PlannerEditScreenState extends ConsumerState<PlannerEditScreen> {
     super.dispose();
   }
 
+  Future<void> _handleVoiceInput() async {
+    final result = await VoiceInputOverlay.show(context);
+    if (result == null || !mounted) return;
+
+    if (result.intent == VoiceCommandIntent.remove) {
+      if (widget.existing != null) {
+        _delete();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No entry to remove yet.')),
+        );
+      }
+      return;
+    }
+
+    if (result.hasDateTime ||
+        result.hasTitle ||
+        (result.description != null && result.description != 'null') ||
+        result.reminderOffset != null ||
+        result.priority != null ||
+        result.category != null ||
+        result.estimatedDuration != null ||
+        result.recurring != null) {
+      setState(() {
+        if (result.hasTitle) {
+          _titleController.text = result.title!;
+        }
+        if (result.description != null && result.description != 'null') {
+          _notesController.text = result.description!;
+        }
+        if (result.hasDateTime) {
+          _dateTime = result.dateTime!;
+        }
+        if (result.reminderOffset != null) {
+          _reminderOffset = result.reminderOffset!;
+        }
+        if (result.priority != null) {
+          _priority = result.priority!;
+        }
+        if (result.category != null) {
+          _category = result.category!;
+        }
+        if (result.estimatedDuration != null) {
+          _estimatedDuration = result.estimatedDuration;
+        }
+        if (result.recurring != null && result.recurring!.isNotEmpty) {
+          _isRecurring = true;
+          // Note: Full recurrence rule parsing from natural language would go here.
+        }
+        _parsedByAI = result.parsedByAI;
+        // ignore: avoid_print
+        print('[PlannerEdit] _parsedByAI set to: $_parsedByAI');
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.hasDateTime
+                ? 'Voice input applied! Review the details and tap Save.'
+                : 'Title set from voice. Set the date/time manually.',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      if (result.intent == VoiceCommandIntent.openManual) {
+        // Just let them type it in, no need for an error.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please fill in the details manually.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.rawText.isNotEmpty
+                  ? 'Could not parse: "${result.rawText}". Try again.'
+                  : 'No speech detected. Try again.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     final isEditing = widget.existing != null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Edit Entry' : 'New Entry'),
-        actions: [
-          if (isEditing)
+    final isOffline = ref.watch(isOfflineProvider);
+
+    // Grayscale color filter for offline mode
+    const grayscaleMatrix = ColorFilter.matrix(<double>[
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0.2126,
+      0.7152,
+      0.0722,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ]);
+    const transparentFilter = ColorFilter.mode(
+      Colors.transparent,
+      BlendMode.dst,
+    );
+
+    return ColorFiltered(
+      colorFilter: isOffline ? grayscaleMatrix : transparentFilter,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(isEditing ? 'Edit Entry' : 'New Entry'),
+          actions: [
+            // Voice input
             IconButton(
-              tooltip: 'Delete',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _saving ? null : _delete,
+              tooltip: 'Voice input',
+              icon: const Icon(Icons.mic),
+              onPressed: _saving ? null : _handleVoiceInput,
             ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: theme.colorScheme.onPrimary,
-                textStyle: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              onPressed: _saving ? null : _save,
-              child:
-                  _saving
-                      ? SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: theme.colorScheme.onPrimary,
-                        ),
-                      )
-                      : const Text('Save'),
+            IconButton(
+              tooltip: 'Voice help',
+              icon: const Icon(Icons.info_outline, size: 20),
+              onPressed: () => VoiceReminderInfoDialog.show(context),
             ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Title
-              TextFormField(
-                controller: _titleController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'e.g., Admit Card download',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+            if (isEditing)
+              IconButton(
+                tooltip: 'Delete',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _saving ? null : _delete,
+              ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  textStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
-                  prefixIcon: const Icon(Icons.title),
                 ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Title is required';
-                  }
-                  return null;
-                },
-                inputFormatters: [TitleCaseTextInputFormatter()],
+                onPressed: _saving ? null : _save,
+                child:
+                    _saving
+                        ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        )
+                        : const Text('Save'),
               ),
-              const SizedBox(height: 16),
-
-              // Notes (moved below Title)
-              TextFormField(
-                controller: _notesController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'Add detail...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  prefixIcon: const Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(top: 12),
-                        child: Icon(Icons.notes),
-                      ),
-                    ],
-                  ),
-                  alignLabelWithHint: true,
-                ),
-                minLines: 2,
-                maxLines: 4,
-                inputFormatters: [TitleCaseTextInputFormatter()],
-              ),
-              const SizedBox(height: 16),
-
-              // Priority Section
-              Text(
-                'Priority',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              PrioritySelector(
-                selected: _priority,
-                onChanged: (priority) => setState(() => _priority = priority),
-              ),
-              const SizedBox(height: 16),
-
-              // Category Section
-              Text(
-                'Category',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              CategorySelector(
-                selected: _category,
-                onChanged: (category) => setState(() => _category = category),
-                scrollable: true,
-              ),
-              const SizedBox(height: 16),
-
-              // Date & Time
-              _DateTimeTile(
-                label: 'Date & Time',
-                value: _dateTime,
-                onTap: () async {
-                  final picked = await _pickDateTime(
-                    context,
-                    initial: _dateTime,
-                  );
-                  if (picked == null) return;
-                  setState(() {
-                    _dateTime = picked;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Estimated Duration
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.timer_outlined),
-                  title: const Text('Estimated Duration'),
-                  subtitle: Text(
-                    _estimatedDuration != null
-                        ? _formatDuration(_estimatedDuration!)
-                        : 'Not set',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _pickDuration,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Recurring
-              Card(
-                child: Column(
-                  children: [
-                    SwitchListTile.adaptive(
-                      secondary: const Icon(Icons.repeat),
-                      title: const Text('Recurring'),
-                      subtitle: Text(
-                        _isRecurring
-                            ? (_recurrence?.displayText ?? 'Custom')
-                            : 'One-time entry',
-                      ),
-                      value: _isRecurring,
-                      onChanged: (v) async {
-                        if (v) {
-                          final rule = await _pickRecurrence();
-                          if (rule != null) {
-                            setState(() {
-                              _isRecurring = true;
-                              _recurrence = rule;
-                            });
-                          }
-                        } else {
-                          setState(() {
-                            _isRecurring = false;
-                            _recurrence = null;
-                          });
-                        }
-                      },
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Title
+                TextFormField(
+                  controller: _titleController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    hintText: 'e.g., Admit Card download',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    if (_isRecurring)
-                      ListTile(
-                        title: const Text('Change recurrence'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () async {
-                          final rule = await _pickRecurrence();
-                          if (rule != null) {
+                    prefixIcon: const Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Icon(Icons.title),
+                        ),
+                      ],
+                    ),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Title is required';
+                    }
+                    return null;
+                  },
+                  inputFormatters: [TitleCaseTextInputFormatter()],
+                ),
+                const SizedBox(height: 16),
+
+                // Notes (moved below Title)
+                TextFormField(
+                  controller: _notesController,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'Add detail...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Icon(Icons.notes),
+                        ),
+                      ],
+                    ),
+                    alignLabelWithHint: true,
+                  ),
+                  minLines: 2,
+                  maxLines: 4,
+                  inputFormatters: [TitleCaseTextInputFormatter()],
+                ),
+
+                // Powered by Gemini indicator
+                if (_parsedByAI)
+                  PoweredByGeminiBadge(
+                    onDone: () {
+                      if (mounted) setState(() => _parsedByAI = false);
+                    },
+                  ),
+
+                const SizedBox(height: 16),
+
+                // Priority Section
+                Text(
+                  'Priority',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                PrioritySelector(
+                  selected: _priority,
+                  onChanged: (priority) => setState(() => _priority = priority),
+                ),
+                const SizedBox(height: 16),
+
+                // Category Section
+                Text(
+                  'Category',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CategorySelector(
+                  selected: _category,
+                  onChanged: (category) => setState(() => _category = category),
+                  scrollable: true,
+                ),
+                const SizedBox(height: 16),
+
+                // Date & Time
+                _DateTimeTile(
+                  label: 'Date & Time',
+                  value: _dateTime,
+                  onTap: () async {
+                    final picked = await _pickDateTime(
+                      context,
+                      initial: _dateTime,
+                    );
+                    if (picked == null) return;
+                    setState(() {
+                      _dateTime = picked;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Estimated Duration
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.timer_outlined),
+                    title: const Text('Estimated Duration'),
+                    subtitle: Text(
+                      _estimatedDuration != null
+                          ? _formatDuration(_estimatedDuration!)
+                          : 'Not set',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _pickDuration,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Recurring
+                Card(
+                  child: Column(
+                    children: [
+                      SwitchListTile.adaptive(
+                        secondary: const Icon(Icons.repeat),
+                        title: const Text('Recurring'),
+                        subtitle: Text(
+                          _isRecurring
+                              ? (_recurrence?.displayText ?? 'Custom')
+                              : 'One-time entry',
+                        ),
+                        value: _isRecurring,
+                        onChanged: (v) async {
+                          if (v) {
+                            final rule = await _pickRecurrence();
+                            if (rule != null) {
+                              setState(() {
+                                _isRecurring = true;
+                                _recurrence = rule;
+                              });
+                            }
+                          } else {
                             setState(() {
-                              _recurrence = rule;
+                              _isRecurring = false;
+                              _recurrence = null;
                             });
                           }
                         },
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Reminder (now mandatory)
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.notifications_active),
-                  title: const Text('Reminder'),
-                  subtitle: Text(_getReminderOffsetLabel(_reminderOffset)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final ok = await _ensurePermissionsUserInitiated();
-                    if (!ok) {
-                      if (!mounted) return;
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Notifications are disabled. Enable them in Settings to use reminders.',
-                          ),
+                      if (_isRecurring)
+                        ListTile(
+                          title: const Text('Change recurrence'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () async {
+                            final rule = await _pickRecurrence();
+                            if (rule != null) {
+                              setState(() {
+                                _recurrence = rule;
+                              });
+                            }
+                          },
                         ),
-                      );
-                      // proceed anyway so they can set the offset (saved gracefully later)
-                    }
-                    final offset = await _pickReminderOffset();
-                    if (offset != null) {
-                      setState(() {
-                        _reminderOffset = offset;
-                      });
-                    }
-                  },
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 12),
+
+                // Reminder (now mandatory)
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.notifications_active),
+                    title: const Text('Reminder'),
+                    subtitle: Text(_getReminderOffsetLabel(_reminderOffset)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final ok = await _ensurePermissionsUserInitiated();
+                      if (!ok) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Notifications are disabled. Enable them in Settings to use reminders.',
+                            ),
+                          ),
+                        );
+                        // proceed anyway so they can set the offset (saved gracefully later)
+                      }
+                      final offset = await _pickReminderOffset();
+                      if (offset != null) {
+                        setState(() {
+                          _reminderOffset = offset;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),

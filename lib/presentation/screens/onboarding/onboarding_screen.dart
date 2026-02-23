@@ -93,7 +93,23 @@ class OnboardingScreen extends StatelessWidget {
           ),
           decoration: pageDecoration,
         ),
-        // ── Slide 4: Native iOS Experience ──
+        // ── Slide 4: Voice Command Reminders ──
+        PageViewModel(
+          title: 'Voice Command Reminders',
+          body:
+              'Long-press any bell icon and speak naturally.\n'
+              'Gemini AI will handle the rest instantly.\n'
+              'Smart. Fast. Hands-free. 🔔✨',
+          image: const _CrossfadingImage(
+            assetPaths: [
+              'assets/images/onboarding/onboarding_voice.png',
+              'assets/images/onboarding/onboarding_voice2.png',
+            ],
+            interval: Duration(seconds: 4),
+          ),
+          decoration: pageDecoration,
+        ),
+        // ── Slide 5: Native iOS Experience ──
         PageViewModel(
           title: 'Native iOS Experience',
           body:
