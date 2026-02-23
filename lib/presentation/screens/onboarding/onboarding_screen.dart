@@ -71,28 +71,7 @@ class OnboardingScreen extends StatelessWidget {
           ),
           decoration: pageDecoration,
         ),
-        // ── Slide 2: Offline Notices ──
-        PageViewModel(
-          title: 'Offline Notices',
-          body:
-              'Access important notices even without internet.\nAll notices are saved for offline reading.',
-          image: _buildImage('assets/images/onboarding/onboarding_offline.png'),
-          decoration: pageDecoration,
-        ),
-        // ── Slide 3: Notice-based Reminders ──
-        PageViewModel(
-          title: 'Notice-based Reminders',
-          body:
-              'Set reminders on any notice to stay updated on critical announcements and deadlines.',
-          image: const _CrossfadingImage(
-            assetPaths: [
-              'assets/images/onboarding/onboarding_reminders.png',
-              'assets/images/onboarding/onboarding_reminders2.png',
-            ],
-            interval: Duration(seconds: 4),
-          ),
-          decoration: pageDecoration,
-        ),
+
         // ── Slide 4: Voice Command Reminders ──
         PageViewModel(
           title: 'Voice Command Reminders',
@@ -184,40 +163,6 @@ class OnboardingScreen extends StatelessWidget {
       ),
       curve: Curves.easeInOut,
       animationDuration: 350,
-    );
-  }
-
-  /// Builds the image widget for each onboarding slide.
-  /// Falls back to an icon placeholder if the image asset is missing.
-  Widget _buildImage(String assetPath) {
-    return SizedBox.expand(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Image.asset(
-          assetPath,
-          fit: BoxFit.fill,
-          alignment: Alignment.topCenter,
-          errorBuilder: (context, error, stackTrace) {
-            // Placeholder shown until the user adds the real images
-            return Center(
-              child: Container(
-                height: double.infinity,
-                width: double.infinity,
-                margin: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.headerGradientStart.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.image_outlined,
-                  size: 80,
-                  color: AppColors.headerGradientStart,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
     );
   }
 }
